@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image to Drawing Instructions</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 20px;
+      text-align: center;
+    }
+    input[type="file"] {
+      margin: 20px 0;
+    }
+    img {
+      max-width: 100%;
+      margin: 20px 0;
+      border-radius: 12px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #1e3a8a;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: gray;
+    }
+    ul {
+      text-align: left;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Image to Drawing Instructions</h1>
+  <input type="file" accept="image/*" id="imageInput" />
+  <br />
+  <img id="preview" style="display: none;" />
+  <br />
+  <button onclick="analyzeImage()" id="analyzeBtn" disabled>Generate Drawing Instructions</button>
+
+  <ul id="instructionsList"></ul>
+
+  <script>
+    let base64Image = "";
+
+    document.getElementById('imageInput').addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        base64Image = reader.result;
+        document.getElementById('preview').src = base64Image;
+        document.getElementById('preview').style.display = 'block';
+        document.getElementById('analyzeBtn').disabled = false;
+      };
+      if (file) {
+        reader.readAsDataURL(file);
+      }
+    });
+
+    function analyzeImage() {
+      const instructionsList = document.getElementById('instructionsList');
+      instructionsList.innerHTML = "<li>Analyzing image... please wait.</li>";
+
+      fetch('https://image-to-drawing-backend.onrender.com', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ image: base64Image })
+})
+      .then(response => response.json())
+      .then(data => {
+        instructionsList.innerHTML = "";
+        if (data.instructions) {
+          const steps = data.instructions.split('\n');
+          steps.forEach(step => {
+            const li = document.createElement('li');
+            li.textContent = step;
+            instructionsList.appendChild(li);
+          });
+        } else {
+          instructionsList.innerHTML = `<li>Error: ${data.error}</li>`;
+        }
+      })
+      .catch(err => {
+        instructionsList.innerHTML = `<li>Error: ${err.message}</li>`;
+      });
+    }
+  </script>
+</body>
+</html>
